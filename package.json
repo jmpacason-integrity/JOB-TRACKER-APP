@@ -1,0 +1,15 @@
+{
+  "name": "job-tracker-app",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "backend:dev": "pnpm --filter backend dev",
+    "backend:build": "pnpm --filter backend build",
+    "admin:dev": "pnpm --filter admin-web dev",
+    "admin:build": "pnpm --filter admin-web build",
+    "mobile:start": "pnpm --filter mobile start"
+  }
+}

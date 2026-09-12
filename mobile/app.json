@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Job Tracker",
+    "slug": "job-tracker",
+    "scheme": "jobtracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jobtracker.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Job Tracker uses your location to confirm you're on-site when you clock in or out of a job.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Job Tracker can check your location in the background so clock-in reminders and geofenced arrival detection work even when the app isn't open.",
+        "NSCameraUsageDescription": "Job Tracker needs camera access to take job-site and receipt photos.",
+        "NSPhotoLibraryUsageDescription": "Job Tracker needs photo library access to attach existing photos to a job or expense."
+      }
+    },
+    "android": {
+      "package": "com.jobtracker.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Job Tracker can check your location in the background so clock-in reminders and geofenced arrival detection work even when the app isn't open."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Job Tracker needs photo library access to attach existing photos to a job or expense.",
+          "cameraPermission": "Job Tracker needs camera access to take job-site and receipt photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0F172A"
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:4000"
+    }
+  }
+}
