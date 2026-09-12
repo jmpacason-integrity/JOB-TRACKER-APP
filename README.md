@@ -37,10 +37,14 @@ pnpm seed                # optional: seeds a demo owner + worker + job
 pnpm dev                 # starts the API on :4000
 ```
 
-Or run everything (Postgres + backend) via Docker:
+Or run everything (Postgres + backend + a Caddy reverse proxy for HTTPS) via
+Docker Compose — this is also how you'd deploy it to a real server, see
+**Production deployment** below:
 
 ```bash
-docker compose up --build
+cp .env.example .env   # set JWT_SECRET and POSTGRES_PASSWORD, see comments
+docker compose up --build -d
+docker compose exec backend pnpm seed   # optional: demo owner + worker + job
 ```
 
 Demo login after seeding: `owner@example.com` / `changeme123` (manager) and
@@ -67,6 +71,51 @@ device). Requires Expo Go or a dev client to run on an actual iPhone/Android
 device — see `mobile/WIDGETS.md` for the plan and current limitations around
 true home-screen widgets, which need native iOS/Android builds this
 environment can't produce or test.
+
+## Production deployment
+
+The backend is designed to run on any small VPS (Hetzner, DigitalOcean, etc.)
+via Docker Compose — Postgres and the API are not exposed publicly; only a
+bundled Caddy reverse proxy is, and it gets you automatic HTTPS for free once
+you have a domain.
+
+1. **Provision a server**: Ubuntu 24.04, smallest shared-vCPU size is plenty
+   to start (Hetzner CX22 / DigitalOcean's $6/mo droplet). Add your SSH key
+   during creation.
+2. **(Optional) Point a domain at it** — an A record for something like
+   `api.yourcompany.com` → the server's IP. You can skip this and use plain
+   HTTP on the IP for initial internal testing, but real field use over the
+   internet should go through HTTPS.
+3. **Install Docker**:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   apt install -y docker-compose-plugin git
+   ```
+4. **Clone and configure**:
+   ```bash
+   git clone <this-repo-url>
+   cd JOB-TRACKER-APP
+   cp .env.example .env
+   ```
+   Edit `.env`:
+   - `JWT_SECRET` — generate with `openssl rand -hex 32`
+   - `POSTGRES_PASSWORD` — generate with `openssl rand -hex 20`
+   - `DOMAIN` — your domain from step 2, if you have one (leave blank to
+     serve plain HTTP on port 80 for now)
+   - `OPENWEATHER_API_KEY` — optional, for the per-job weather forecast
+5. **Start it up** (the backend container runs pending migrations
+   automatically on boot):
+   ```bash
+   docker compose up --build -d
+   docker compose exec backend pnpm seed   # optional demo data
+   ```
+6. **Point the apps at it**: set `VITE_API_BASE_URL` (admin-web) and
+   `expo.extra.apiBaseUrl` (mobile's `app.json`) to `https://<your-domain>`
+   (or `http://<server-ip>` if you skipped the domain).
+
+Add a domain and set `DOMAIN` in `.env` any time later, then
+`docker compose up -d` again — Caddy will pick it up and request a
+certificate automatically.
 
 ## Data model
 

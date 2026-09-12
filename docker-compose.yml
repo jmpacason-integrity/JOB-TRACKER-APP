@@ -1,15 +1,16 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: jobtracker
-      POSTGRES_PASSWORD: jobtracker
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
       POSTGRES_DB: jobtracker
-    ports:
-      - "5432:5432"
+    # Not published to the host - only reachable from other containers on
+    # this compose network. Use `docker compose exec postgres psql ...` to
+    # connect directly if needed.
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -21,17 +22,39 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: "postgresql://jobtracker:jobtracker@postgres:5432/jobtracker?schema=public"
-      JWT_SECRET: "change-me-to-a-long-random-string"
+      DATABASE_URL: "postgresql://jobtracker:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/jobtracker?schema=public"
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET in .env, e.g. via openssl rand -hex 32}"
       JWT_EXPIRES_IN: "12h"
       PORT: 4000
       UPLOAD_DIR: "/data/uploads"
-      OPENWEATHER_API_KEY: ""
-    ports:
-      - "4000:4000"
+      OPENWEATHER_API_KEY: "${OPENWEATHER_API_KEY:-}"
+    # Not published to the host - Caddy is the only public entry point.
+    expose:
+      - "4000"
     volumes:
       - uploads_data:/data/uploads
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Set DOMAIN in .env once you have one pointed at this server's IP
+      # (e.g. api.yourcompany.com) to get automatic, auto-renewing HTTPS.
+      # Left as ":80" it just serves plain HTTP on port 80 - fine for
+      # initial internal testing, not for real field use.
+      DOMAIN: "${DOMAIN:-:80}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   postgres_data:
   uploads_data:
+  caddy_data:
+  caddy_config:
