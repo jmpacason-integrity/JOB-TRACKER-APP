@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prisma generate
+        working-directory: backend
+        run: pnpm prisma:generate
+        env:
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/jobtracker"
+      - name: Typecheck
+        working-directory: backend
+        run: pnpm exec tsc --noEmit
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        working-directory: mobile
+        run: pnpm exec tsc --noEmit
+
+  admin-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        working-directory: admin-web
+        run: pnpm exec tsc -b
+      - name: Build
+        working-directory: admin-web
+        run: pnpm exec vite build

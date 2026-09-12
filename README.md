@@ -72,6 +72,9 @@ device — see `mobile/WIDGETS.md` for the plan and current limitations around
 true home-screen widgets, which need native iOS/Android builds this
 environment can't produce or test.
 
+To get an installable build onto your team's phones (no app store review
+needed), see `mobile/DEPLOY.md`.
+
 ## Production deployment
 
 The backend is designed to run on any small VPS (Hetzner, DigitalOcean, etc.)
@@ -132,8 +135,26 @@ per-job weather cache.
 - **field_worker / subcontractor** — mobile app only: clock in/out, log
   expenses and photos against their assigned jobs, view their schedule.
 
+## CI
+
+`.github/workflows/ci.yml` typechecks and builds all three apps (backend,
+mobile, admin-web) on every push to `main` and every pull request.
+
 ## What's next
 
+Everything above can be done without any paid account. These remaining items
+each need something only you can provide (a payment method, an identity, or a
+product decision), so they're left for you to action when ready:
+
+- **A live server** — provision the VPS per **Production deployment** above
+  (needs a hosting account + payment).
+- **A domain** (optional but recommended for HTTPS) — needs a domain
+  registrar account.
+- **Getting the app onto phones** — see `mobile/DEPLOY.md`; an Expo account
+  is free, an Apple Developer Program membership ($99/yr) is needed for iOS.
+- **Public app store listings** — Apple/Google developer accounts plus store
+  listing assets (screenshots, description, privacy policy) and their review
+  process (can't be sped up).
 - Native home-screen widgets (iOS WidgetKit, Android via
   `react-native-android-widget`) — see `mobile/WIDGETS.md`.
 - Xero (or similar) export for approved timesheets/expenses.
