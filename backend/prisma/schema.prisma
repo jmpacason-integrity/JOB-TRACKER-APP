@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  admin
+  office
+  field_worker
+  subcontractor
+}
+
+enum JobStatus {
+  planned
+  active
+  on_hold
+  completed
+  cancelled
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum TimeEntrySource {
+  geofence_auto
+  manual
+  admin_adjusted
+}
+
+enum ExpenseCategory {
+  materials
+  fuel
+  tools_equipment
+  labour_subcontract
+  permits_fees
+  other
+}
+
+enum PhotoCategory {
+  before
+  during
+  after
+  issue
+  other
+}
+
+enum PurchaseOrderStatus {
+  ordered
+  partially_received
+  received
+  invoiced
+  cancelled
+}
+
+enum BudgetCategory {
+  labour
+  materials
+  subcontractors
+  equipment
+  other
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         UserRole
+  hourlyRate   Decimal? @db.Decimal(10, 2)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  jobAssignments      JobAssignment[]
+  shifts              Shift[]
+  timeEntries         TimeEntry[]        @relation("TimeEntryUser")
+  approvedTimeEntries TimeEntry[]        @relation("TimeEntryApprovedBy")
+  expenses            Expense[]          @relation("ExpenseUser")
+  approvedExpenses    Expense[]          @relation("ExpenseApprovedBy")
+  photos              Photo[]
+  purchaseOrders      PurchaseOrder[]
+  pushTokens          PushToken[]
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  name            String
+  clientName      String?
+  address         String?
+  lat             Float?
+  lng             Float?
+  geofenceRadiusM Int       @default(150)
+  status          JobStatus @default(planned)
+  startDate       DateTime?
+  endDate         DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assignments    JobAssignment[]
+  shifts         Shift[]
+  timeEntries    TimeEntry[]
+  expenses       Expense[]
+  photos         Photo[]
+  purchaseOrders PurchaseOrder[]
+  budgetLines    BudgetLine[]
+  weatherCache   WeatherCache?
+}
+
+model JobAssignment {
+  id        String   @id @default(uuid())
+  jobId     String
+  userId    String
+  job       Job      @relation(fields: [jobId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, userId])
+}
+
+model Shift {
+  id             String   @id @default(uuid())
+  jobId          String
+  userId         String
+  job            Job      @relation(fields: [jobId], references: [id])
+  user           User     @relation(fields: [userId], references: [id])
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([jobId, scheduledStart])
+  @@index([userId, scheduledStart])
+}
+
+model TimeEntry {
+  id            String           @id @default(uuid())
+  jobId         String
+  userId        String
+  job           Job              @relation(fields: [jobId], references: [id])
+  user          User             @relation("TimeEntryUser", fields: [userId], references: [id])
+  clockInAt     DateTime
+  clockInLat    Float?
+  clockInLng    Float?
+  clockOutAt    DateTime?
+  clockOutLat   Float?
+  clockOutLng   Float?
+  source        TimeEntrySource  @default(manual)
+  status        ApprovalStatus   @default(pending)
+  approvedById  String?
+  approvedBy    User?            @relation("TimeEntryApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  clientEntryId String?          @unique
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([jobId])
+  @@index([userId])
+}
+
+model Expense {
+  id              String          @id @default(uuid())
+  jobId           String
+  userId          String
+  job             Job             @relation(fields: [jobId], references: [id])
+  user            User            @relation("ExpenseUser", fields: [userId], references: [id])
+  amount          Decimal         @db.Decimal(10, 2)
+  category        ExpenseCategory
+  description     String?
+  receiptPhotoUrl String?
+  spentAt         DateTime
+  status          ApprovalStatus  @default(pending)
+  approvedById    String?
+  approvedBy      User?           @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  clientEntryId   String?         @unique
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([jobId])
+  @@index([userId])
+}
+
+model Photo {
+  id            String        @id @default(uuid())
+  jobId         String
+  userId        String
+  job           Job           @relation(fields: [jobId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  url           String
+  category      PhotoCategory @default(other)
+  caption       String?
+  takenAt       DateTime
+  clientEntryId String?       @unique
+  createdAt     DateTime      @default(now())
+
+  @@index([jobId, category])
+}
+
+model Supplier {
+  id            String          @id @default(uuid())
+  name          String
+  contactEmail  String?
+  contactPhone  String?
+  createdAt     DateTime        @default(now())
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id                 String              @id @default(uuid())
+  jobId              String
+  job                Job                 @relation(fields: [jobId], references: [id])
+  supplierId         String?
+  supplier           Supplier?           @relation(fields: [supplierId], references: [id])
+  supplierName       String
+  poNumber           String?
+  amount             Decimal             @db.Decimal(10, 2)
+  budgetCategory     BudgetCategory      @default(materials)
+  status             PurchaseOrderStatus @default(ordered)
+  orderedAt          DateTime            @default(now())
+  expectedDeliveryAt DateTime?
+  receivedAt         DateTime?
+  invoiceUrl         String?
+  notes              String?
+  createdById        String
+  createdBy          User                @relation(fields: [createdById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([jobId])
+}
+
+model BudgetLine {
+  id             String         @id @default(uuid())
+  jobId          String
+  job            Job            @relation(fields: [jobId], references: [id])
+  category       BudgetCategory
+  budgetedAmount Decimal        @db.Decimal(10, 2)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([jobId, category])
+}
+
+model WeatherCache {
+  id           String   @id @default(uuid())
+  jobId        String   @unique
+  job          Job      @relation(fields: [jobId], references: [id])
+  fetchedAt    DateTime @default(now())
+  forecastJson Json
+}

@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobtracker
+      POSTGRES_PASSWORD: jobtracker
+      POSTGRES_DB: jobtracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://jobtracker:jobtracker@postgres:5432/jobtracker?schema=public"
+      JWT_SECRET: "change-me-to-a-long-random-string"
+      JWT_EXPIRES_IN: "12h"
+      PORT: 4000
+      UPLOAD_DIR: "/data/uploads"
+      OPENWEATHER_API_KEY: ""
+    ports:
+      - "4000:4000"
+    volumes:
+      - uploads_data:/data/uploads
+
+volumes:
+  postgres_data:
+  uploads_data:

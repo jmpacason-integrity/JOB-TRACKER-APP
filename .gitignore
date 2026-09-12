@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+
+# backend
+backend/uploads/
+backend/dist/
+backend/generated/
+
+# admin-web
+admin-web/dist/
+
+# macOS
+.DS_Store
